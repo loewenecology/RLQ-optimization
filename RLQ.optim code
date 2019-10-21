@@ -1,0 +1,66 @@
+#........................................................................................................#
+#................Quantifying succession of phytoplankton trait-environment associations..................#
+#........................................................................................................#
+
+#........................................................................................................#
+#...........Author of the script: Charlie Loewen.........................................................#
+#...........Date latest modifications: 2019-10-21........................................................#
+#........................................................................................................#
+
+#########################################################################
+################# For finding traits and environmental variables optimizing RLQ  model
+#########################################################################
+
+##################
+# Clear any variables from the R environment
+##################
+
+rm(list=ls())
+while(dev.cur() != 1){ dev.off(dev.cur()) }
+
+##################
+# Load R packages
+##################
+
+library(ade4)
+
+##################
+# Load data in R environment
+##################
+
+species=read.tree("Phyto_data-site_sp",header=T,sep=",",row.names = 1) # matrix of species by trait variables
+traitopts=read.table("Phyto_data-sp_trait.csv",header=T,sep=",",row.names = 1) # matrix of species by trait variables
+envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # matrix of sites by environmental variables
+
+##################
+# Prepare species data
+##################
+
+# 
+
+# Create data frame of all possible trait and environmental variable combinations
+combolist <- list(a = traitnames, b = traitnames, c = envnames, d = envnames)
+allcombo <- expand.grid(combolist)
+allcombo<-allcombo[!allcombo$a == allcombo$b, ]
+allcombo<-allcombo[!allcombo$c == allcombo$d, ]
+indx <- !duplicated(t(apply(allcombo, 1, sort))) # finds non - duplicates in sorted rows
+allcombo<-allcombo[indx, ] # selects only the non - duplicates according to that index
+
+##################
+# RLQ optimization 
+##################
+
+## SEEDING ##
+
+RLQ.optim = function(i,j,k,l){
+  TRAIT.test <- cbind(traitopts[i],traitopts[j])
+  ENV.test <- cbind(envopts[k],envopts[l])
+  Lsp.EXP <- dudi.coa(reduced_sp, scannf = FALSE)
+  Renv.EXP <- dudi.hillsmith(ENV.test, row.w = Lsp.EXP$lw, scannf = FALSE)
+  Qtrait.EXP <- dudi.hillsmith(TRAIT.test, row.w = Lsp.EXP$cw, scannf = FALSE)
+  rlq.EXP <- rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
+#  testrlq.EXP <- randtest(rlq.EXP, modeltype = 6)
+  output<-c(i,j,k,l,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),use.names=TRUE)
+}
+
+test<-mapply(RLQ.optim,i=as.character(allcombo.20$a), j=as.character(allcombo.20$b), k=as.character(allcombo.20$c), l=as.character(allcombo.20$d))
