@@ -28,7 +28,7 @@ library(ade4)
 # Load data in R environment
 ##################
 
-species=read.tree("Phyto_data-site_sp",header=T,sep=",",row.names = 1) # matrix of species by trait variables
+species=read.table("Phyto_data-site_sp",header=T,sep=",",row.names = 1) # matrix of species by trait variables
 traitopts=read.table("Phyto_data-sp_trait.csv",header=T,sep=",",row.names = 1) # matrix of species by trait variables
 envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # matrix of sites by environmental variables
 
@@ -36,14 +36,12 @@ envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # m
 # Prepare species data
 ##################
 
-# 
-
 # Create data frame of all possible trait and environmental variable combinations
-combolist <- list(a = traitnames, b = traitnames, c = envnames, d = envnames)
-allcombo <- expand.grid(combolist)
+combolist<-list(a = colnames(traitopts), b = colnames(traitnames), c = colnames(envnames), d = colnames(envnames))
+allcombo<-expand.grid(combolist)
 allcombo<-allcombo[!allcombo$a == allcombo$b, ]
 allcombo<-allcombo[!allcombo$c == allcombo$d, ]
-indx <- !duplicated(t(apply(allcombo, 1, sort))) # finds non - duplicates in sorted rows
+indx<-!duplicated(t(apply(allcombo, 1, sort))) # finds non - duplicates in sorted rows
 allcombo<-allcombo[indx, ] # selects only the non - duplicates according to that index
 
 ##################
@@ -53,14 +51,78 @@ allcombo<-allcombo[indx, ] # selects only the non - duplicates according to that
 ## SEEDING ##
 
 RLQ.optim = function(i,j,k,l){
-  TRAIT.test <- cbind(traitopts[i],traitopts[j])
-  ENV.test <- cbind(envopts[k],envopts[l])
-  Lsp.EXP <- dudi.coa(reduced_sp, scannf = FALSE)
-  Renv.EXP <- dudi.hillsmith(ENV.test, row.w = Lsp.EXP$lw, scannf = FALSE)
-  Qtrait.EXP <- dudi.hillsmith(TRAIT.test, row.w = Lsp.EXP$cw, scannf = FALSE)
-  rlq.EXP <- rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
-#  testrlq.EXP <- randtest(rlq.EXP, modeltype = 6)
+  TRAIT.seed<-cbind(traitopts[i],traitopts[j])
+  ENV.seed<-cbind(envopts[k],envopts[l])
+  Lsp.EXP<-dudi.coa(species, scannf = FALSE)
+  Renv.EXP<-dudi.hillsmith(ENV.seed, row.w = Lsp.EXP$lw, scannf = FALSE)
+  Qtrait.EXP<-dudi.hillsmith(TRAIT.seed, row.w = Lsp.EXP$cw, scannf = FALSE)
+  rlq.EXP<-rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
+  testrlq.EXP<-randtest(rlq.EXP, modeltype = 6)
   output<-c(i,j,k,l,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),use.names=TRUE)
 }
 
-test<-mapply(RLQ.optim,i=as.character(allcombo.20$a), j=as.character(allcombo.20$b), k=as.character(allcombo.20$c), l=as.character(allcombo.20$d))
+Seeding<-mapply(RLQ.optim,i=as.character(allcombo$a), j=as.character(allcombo$b), k=as.character(allcombo$c), l=as.character(allcombo$d))
+
+transposed.Seeding<-t(Seeding)
+colnames(transposed.Seeding)<- c("i","j","k","l","corr1","corr2","corrSum")
+sort(transposed.Seeding$corrSum)
+
+## STEPWISE SELECTION ##
+
+# Confirming previous round
+output<-as.data.frame(matrix(ncol=6, nrow=12600))
+
+TRAIT.start<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
+                    traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
+ENV.start<-cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
+                  envopts["ENV.2"]) # ENV.2 = second ranking environmental variable from seeding round
+Lsp.EXP<-dudi.coa(species, scannf = FALSE)
+Renv.EXP<-dudi.hillsmith(ENV.start, row.w = Lsp.EXP$lw, scannf = FALSE)
+Qtrait.EXP<-dudi.hillsmith(TRAIT.start, row.w = Lsp.EXP$cw, scannf = FALSE)
+rlq.EXP<-rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
+testrlq.EXP<-randtest(rlq.EXP, modeltype = 6)
+output<-c(summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),testrlq.EXP$pvalue, use.names=TRUE)
+
+# Step
+step.functi = function(i){
+  TRAIT.stepi <- cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
+                      traitopts["TRAIT.2"], # TRAIT.2 = second ranking trait variable from seeding round
+                      traitopts[i])
+  ENV.stepi <- cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
+                    envopts["ENV.2"]) # ENV.2 = second ranking environmental variable from seeding round
+  Lsp.EXP <- dudi.coa(species, scannf = FALSE)
+  Renv.EXP <- dudi.hillsmith(ENV.stepi, row.w = Lsp.EXP$lw, scannf = FALSE)
+  Qtrait.EXP <- dudi.hillsmith(TRAIT.stepi, row.w = Lsp.EXP$cw, scannf = FALSE)
+  rlq.EXP <- rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
+  testrlq.EXP <- randtest(rlq.EXP, modeltype = 6)
+  output<-c(i,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),testrlq.EXP$pvalue, use.names=TRUE)
+}
+
+step1a<-sapply(as.character(colnames(traitopts)), FUN=step.functi)
+t.step1a <- t(step1a)
+colnames(t.step1a) <- c("variable","corr1","corr2","corrSum","pval1","pval2")
+
+step.functj = function(j){
+  TRAIT.stepj <- cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
+                      traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
+  ENV.stepj <- cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
+                    envopts["ENV.2"], # ENV.2 = second ranking environmental variable from seeding round
+                    envopts[j])
+  Lsp.EXP <- dudi.coa(reduced_sp, scannf = FALSE)
+  Renv.EXP <- dudi.hillsmith(ENV.stepj, row.w = Lsp.EXP$lw, scannf = FALSE)
+  Qtrait.EXP <- dudi.hillsmith(TRAIT.stepj, row.w = Lsp.EXP$cw, scannf = FALSE)
+  rlq.EXP <- rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
+  testrlq.EXP <- randtest(rlq.EXP, modeltype = 6)
+  output<-c(j,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),testrlq.EXP$pvalue, use.names=TRUE)
+}
+
+step1b<-sapply(as.character(colnames(envnames)), FUN=step.functj)
+t.step1b <- t(step1b)
+colnames(t.step1b) <- c("variable","corr1","corr2","corrSum","pval1","pval2")
+
+step1merge <- rbind(t.step1a,t.step1b
+                    [, colnames(t.step1a)])
+
+### Continue adding top ranking traitopts and envopts until Pval <0.05 or corrSum <0.005
+
+#........................................................................................................#
