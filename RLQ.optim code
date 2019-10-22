@@ -33,8 +33,10 @@ traitopts=read.table("Phyto_data-sp_trait.csv",header=T,sep=",",row.names = 1) #
 envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # matrix of sites by environmental variables
 
 ##################
-# Prepare species data
+# RLQ optimization 
 ##################
+
+## PREP ##
 
 # Create data frame of all possible trait and environmental variable combinations
 combolist<-list(a = colnames(traitopts), b = colnames(traitnames), c = colnames(envnames), d = colnames(envnames))
@@ -44,21 +46,19 @@ allcombo<-allcombo[!allcombo$c == allcombo$d, ]
 indx<-!duplicated(t(apply(allcombo, 1, sort))) # finds non - duplicates in sorted rows
 allcombo<-allcombo[indx, ] # selects only the non - duplicates according to that index
 
-##################
-# RLQ optimization 
-##################
-
 ## SEEDING ##
+
+output<-as.data.frame(matrix(ncol=6, nrow=12600))
 
 RLQ.optim = function(i,j,k,l){
   TRAIT.seed<-cbind(traitopts[i],traitopts[j])
   ENV.seed<-cbind(envopts[k],envopts[l])
-  Lsp.EXP<-dudi.coa(species, scannf = FALSE)
-  Renv.EXP<-dudi.hillsmith(ENV.seed, row.w = Lsp.EXP$lw, scannf = FALSE)
-  Qtrait.EXP<-dudi.hillsmith(TRAIT.seed, row.w = Lsp.EXP$cw, scannf = FALSE)
-  rlq.EXP<-rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
-  testrlq.EXP<-randtest(rlq.EXP, modeltype = 6)
-  output<-c(i,j,k,l,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),use.names=TRUE)
+  Lsp<-dudi.coa(species, scannf = FALSE)
+  Renv<-dudi.hillsmith(ENV.seed, row.w = Lsp$lw, scannf = FALSE)
+  Qtrait<-dudi.hillsmith(TRAIT.seed, row.w = Lsp$cw, scannf = FALSE)
+  rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
+  testrlq<-randtest(rlq, modeltype = 6)
+  output<-c(i,j,k,l,summary(rlq)$corr,sum(summary(rlq)$corr),use.names=TRUE)
 }
 
 Seeding<-mapply(RLQ.optim,i=as.character(allcombo$a), j=as.character(allcombo$b), k=as.character(allcombo$c), l=as.character(allcombo$d))
@@ -69,60 +69,59 @@ sort(transposed.Seeding$corrSum)
 
 ## STEPWISE SELECTION ##
 
-# Confirming previous round
-output<-as.data.frame(matrix(ncol=6, nrow=12600))
+# Confirm significance of initial seeding round
 
 TRAIT.start<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
-                    traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
+                   traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
 ENV.start<-cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
-                  envopts["ENV.2"]) # ENV.2 = second ranking environmental variable from seeding round
-Lsp.EXP<-dudi.coa(species, scannf = FALSE)
-Renv.EXP<-dudi.hillsmith(ENV.start, row.w = Lsp.EXP$lw, scannf = FALSE)
-Qtrait.EXP<-dudi.hillsmith(TRAIT.start, row.w = Lsp.EXP$cw, scannf = FALSE)
-rlq.EXP<-rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
-testrlq.EXP<-randtest(rlq.EXP, modeltype = 6)
-output<-c(summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),testrlq.EXP$pvalue, use.names=TRUE)
+                 envopts["ENV.2"]) # ENV.2 = second ranking environmental variable from seeding round
+Lsp<-dudi.coa(species, scannf = FALSE)
+Renv<-dudi.hillsmith(ENV.start, row.w = Lsp$lw, scannf = FALSE)
+Qtrait<-dudi.hillsmith(TRAIT.start, row.w = Lsp$cw, scannf = FALSE)
+rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
+testrlq<-randtest(rlq, modeltype = 6)
+output<-c(summary(rlq)$corr,sum(summary(rlq)$corr),testrlq$pvalue, use.names=TRUE)
 
 # Step
 step.functi = function(i){
-  TRAIT.stepi <- cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
+  TRAIT.stepi<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
                       traitopts["TRAIT.2"], # TRAIT.2 = second ranking trait variable from seeding round
                       traitopts[i])
-  ENV.stepi <- cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
+  ENV.stepi<-cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
                     envopts["ENV.2"]) # ENV.2 = second ranking environmental variable from seeding round
-  Lsp.EXP <- dudi.coa(species, scannf = FALSE)
-  Renv.EXP <- dudi.hillsmith(ENV.stepi, row.w = Lsp.EXP$lw, scannf = FALSE)
-  Qtrait.EXP <- dudi.hillsmith(TRAIT.stepi, row.w = Lsp.EXP$cw, scannf = FALSE)
-  rlq.EXP <- rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
-  testrlq.EXP <- randtest(rlq.EXP, modeltype = 6)
-  output<-c(i,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),testrlq.EXP$pvalue, use.names=TRUE)
+  Lsp<-dudi.coa(species, scannf = FALSE)
+  Renv<-dudi.hillsmith(ENV.stepi, row.w = Lsp$lw, scannf = FALSE)
+  Qtrait<-dudi.hillsmith(TRAIT.stepi, row.w = Lsp$cw, scannf = FALSE)
+  rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
+  testrlq<-randtest(rlq, modeltype = 6)
+  output<-c(i,summary(rlq)$corr,sum(summary(rlq)$corr),testrlq$pvalue, use.names=TRUE)
 }
 
 step1a<-sapply(as.character(colnames(traitopts)), FUN=step.functi)
-t.step1a <- t(step1a)
-colnames(t.step1a) <- c("variable","corr1","corr2","corrSum","pval1","pval2")
+t.step1a<-t(step1a)
+colnames(t.step1a)<-c("variable","corr1","corr2","corrSum","pval1","pval2")
 
 step.functj = function(j){
-  TRAIT.stepj <- cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
-                      traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
-  ENV.stepj <- cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
-                    envopts["ENV.2"], # ENV.2 = second ranking environmental variable from seeding round
-                    envopts[j])
-  Lsp.EXP <- dudi.coa(reduced_sp, scannf = FALSE)
-  Renv.EXP <- dudi.hillsmith(ENV.stepj, row.w = Lsp.EXP$lw, scannf = FALSE)
-  Qtrait.EXP <- dudi.hillsmith(TRAIT.stepj, row.w = Lsp.EXP$cw, scannf = FALSE)
-  rlq.EXP <- rlq(Renv.EXP, Lsp.EXP, Qtrait.EXP, scannf = FALSE)
-  testrlq.EXP <- randtest(rlq.EXP, modeltype = 6)
-  output<-c(j,summary(rlq.EXP)$corr,sum(summary(rlq.EXP)$corr),testrlq.EXP$pvalue, use.names=TRUE)
+  TRAIT.stepj<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
+                     traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
+  ENV.stepj<-cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
+                   envopts["ENV.2"], # ENV.2 = second ranking environmental variable from seeding round
+                   envopts[j])
+  Lsp<-dudi.coa(reduced_sp, scannf = FALSE)
+  Renv<-dudi.hillsmith(ENV.stepj, row.w = Lsp$lw, scannf = FALSE)
+  Qtrait<-dudi.hillsmith(TRAIT.stepj, row.w = Lsp$cw, scannf = FALSE)
+  rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
+  testrlq<-randtest(rlq, modeltype = 6)
+  output<-c(j,summary(rlq)$corr,sum(summary(rlq)$corr),testrlq$pvalue, use.names=TRUE)
 }
 
 step1b<-sapply(as.character(colnames(envnames)), FUN=step.functj)
-t.step1b <- t(step1b)
-colnames(t.step1b) <- c("variable","corr1","corr2","corrSum","pval1","pval2")
+t.step1b<-t(step1b)
+colnames(t.step1b)<-c("variable","corr1","corr2","corrSum","pval1","pval2")
 
 step1merge <- rbind(t.step1a,t.step1b
                     [, colnames(t.step1a)])
 
-### Continue adding top ranking traitopts and envopts until Pval <0.05 or corrSum <0.005
+### Continue adding top ranking traitopts and envopts (i.e. TRAIT.3, ENV.3, TRAIT.4, ENV.4) until Pval <0.05 or corrSum <0.005
 
 #........................................................................................................#
