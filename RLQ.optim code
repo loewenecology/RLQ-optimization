@@ -48,7 +48,7 @@ allcombo<-allcombo[indx, ] # selects only the non - duplicates according to that
 
 ## SEEDING ##
 
-output<-as.data.frame(matrix(ncol=6, nrow=12600))
+output<-as.data.frame(matrix(ncol=7))
 
 RLQ.optim = function(i,j,k,l){
   TRAIT.seed<-cbind(traitopts[i],traitopts[j])
@@ -70,6 +70,8 @@ sort(transposed.Seeding$corrSum)
 ## STEPWISE SELECTION ##
 
 # Confirm significance of initial seeding round
+
+output<-as.data.frame(matrix(ncol=6))
 
 TRAIT.start<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
                    traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
