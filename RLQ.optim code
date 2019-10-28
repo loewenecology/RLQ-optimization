@@ -123,6 +123,6 @@ colnames(t.step1b)<-c("variable","corr1","corr2","corrSum","pval1","pval2")
 step1merge <- rbind(t.step1a,t.step1b
                     [, colnames(t.step1a)])
 
-### Continue adding top ranking traitopts and envopts (i.e. TRAIT.3, ENV.3, TRAIT.4, ENV.4) until Pval <0.05 or corrSum <0.005
+### Add trait or environmental variable with highest corrSum value, and repeat above procedure revising step.funci and step.funcj to include top ranking variables from traitopts and envopts  (e.g. TRAIT.3, ENV.3, TRAIT.4, ENV.4). Continue step selection until Pval <0.05 or corrSum <0.005
 
 #........................................................................................................#
