@@ -63,15 +63,12 @@ RLQ.optim = function(i,j,k,l){
 
 Seeding<-mapply(RLQ.optim,i=as.character(allcombo$a), j=as.character(allcombo$b), k=as.character(allcombo$c), l=as.character(allcombo$d))
 
-transposed.Seeding<-t(Seeding)
-colnames(transposed.Seeding)<- c("i","j","k","l","corr1","corr2","corrSum")
-sort(transposed.Seeding$corrSum)
+transposed.list.Seeding<-do.call(rbind.data.frame, Seeding)
+colnames(transposed.list.Seeding)<-c("i","j","k","l","corr1","corr2","corrSUM")
 
 ## STEPWISE SELECTION ##
 
 # Confirm significance of initial seeding round
-
-output<-as.data.frame(matrix(ncol=6))
 
 TRAIT.start<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
                    traitopts["TRAIT.2"]) # TRAIT.2 = second ranking trait variable from seeding round
@@ -85,6 +82,9 @@ testrlq<-randtest(rlq, modeltype = 6)
 output<-c(summary(rlq)$corr,sum(summary(rlq)$corr),testrlq$pvalue, use.names=TRUE)
 
 # Step
+
+output<-as.data.frame(matrix(ncol=6))
+
 step.functi = function(i){
   TRAIT.stepi<-cbind(traitopts["TRAIT.1"], # TRAIT.1 = top ranking trait variable from seeding round
                       traitopts["TRAIT.2"], # TRAIT.2 = second ranking trait variable from seeding round
