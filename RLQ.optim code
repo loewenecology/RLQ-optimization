@@ -80,7 +80,7 @@ Qtrait<-dudi.hillsmith(TRAIT.start, row.w = Lsp$cw, scannf = FALSE)
 rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
 randtest(rlq, modeltype = 6)
 
-# Step selection
+# Step1
 
 output<-as.data.frame(matrix(ncol=6))
 
@@ -123,6 +123,6 @@ colnames(t.step1b)<-c("variable","corr1","corr2","corrSum","pval1","pval2")
 step1merge <- rbind(t.step1a,t.step1b
                     [, colnames(t.step1a)])
 
-### Add trait or environmental variable with highest corrSum value, and repeat above procedure revising step.funci and step.funcj to include top ranking variables from traitopts and envopts  (e.g. TRAIT.3, ENV.3, TRAIT.4, ENV.4). Continue step selection until Pval <0.05 or corrSum <0.005
+### Revise step.funci and step.funcj to include trait or environmental variable with highest corrSum value, and repeat above procedure (i.e. TRAIT.3 or ENV.3). Continue step selection until Pval <0.05 or corrSum <0.005 to optimize RLQ and find dominant trait-environment relationships.
 
 #........................................................................................................#
