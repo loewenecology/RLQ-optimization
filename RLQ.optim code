@@ -4,7 +4,7 @@
 
 #........................................................................................................#
 #...........Author of the script: Charlie Loewen.........................................................#
-#...........Date latest modifications: 2019-10-21........................................................#
+#...........Date latest modifications: 2019-10-28........................................................#
 #........................................................................................................#
 
 #########################################################################
@@ -78,10 +78,9 @@ Lsp<-dudi.coa(species, scannf = FALSE)
 Renv<-dudi.hillsmith(ENV.start, row.w = Lsp$lw, scannf = FALSE)
 Qtrait<-dudi.hillsmith(TRAIT.start, row.w = Lsp$cw, scannf = FALSE)
 rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
-testrlq<-randtest(rlq, modeltype = 6)
-output<-c(summary(rlq)$corr,sum(summary(rlq)$corr),testrlq$pvalue, use.names=TRUE)
+randtest(rlq, modeltype = 6)
 
-# Step
+# Step selection
 
 output<-as.data.frame(matrix(ncol=6))
 
@@ -117,7 +116,7 @@ step.functj = function(j){
   output<-c(j,summary(rlq)$corr,sum(summary(rlq)$corr),testrlq$pvalue, use.names=TRUE)
 }
 
-step1b<-sapply(as.character(colnames(envnames)), FUN=step.functj)
+step1b<-sapply(as.character(colnames(envopts)), FUN=step.functj)
 t.step1b<-t(step1b)
 colnames(t.step1b)<-c("variable","corr1","corr2","corrSum","pval1","pval2")
 
