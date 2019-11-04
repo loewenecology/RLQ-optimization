@@ -28,9 +28,9 @@ library(ade4)
 # Load data in R environment
 ##################
 
-species=read.table("Phyto_data-site_sp",header=T,sep=",",row.names = 1) # matrix of species by trait variables
-traitopts=read.table("Phyto_data-sp_trait.csv",header=T,sep=",",row.names = 1) # matrix of species by trait variables
-envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # matrix of sites by environmental variables
+species=read.table("Phyto_data-site_sp.csv",header=T,sep=",",row.names = 1) # matrix of sites (rows) by species (columns)
+traitopts=read.table("Phyto_data-sp_trait.csv",header=T,sep=",",row.names = 1) # matrix of species (rows) by traits (columns)
+envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # matrix of sites (rows) by environmental variables (columns)
 
 ##################
 # RLQ optimization 
@@ -39,7 +39,7 @@ envopts=read.table("Phyto_data-site_env.csv",header=T,sep=",",row.names = 1) # m
 ## PREP ##
 
 # Create data frame of all possible trait and environmental variable combinations
-combolist<-list(a = colnames(traitopts), b = colnames(traitnames), c = colnames(envnames), d = colnames(envnames))
+combolist<-list(a = colnames(traitopts), b = colnames(traitopts), c = colnames(envopts), d = colnames(envopts))
 allcombo<-expand.grid(combolist)
 allcombo<-allcombo[!allcombo$a == allcombo$b, ]
 allcombo<-allcombo[!allcombo$c == allcombo$d, ]
@@ -108,7 +108,7 @@ step.functj = function(j){
   ENV.stepj<-cbind(envopts["ENV.1"], # ENV.1 = top ranking environmental variable from seeding round
                    envopts["ENV.2"], # ENV.2 = second ranking environmental variable from seeding round
                    envopts[j])
-  Lsp<-dudi.coa(reduced_sp, scannf = FALSE)
+  Lsp<-dudi.coa(species, scannf = FALSE)
   Renv<-dudi.hillsmith(ENV.stepj, row.w = Lsp$lw, scannf = FALSE)
   Qtrait<-dudi.hillsmith(TRAIT.stepj, row.w = Lsp$cw, scannf = FALSE)
   rlq<-rlq(Renv, Lsp, Qtrait, scannf = FALSE)
