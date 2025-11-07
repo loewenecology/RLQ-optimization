@@ -34,7 +34,7 @@ envopts = read.table("Phyto_data-site_env.csv", header = T, sep = ",", row.names
 combolist <- list(a = colnames(traitopts), b = colnames(traitopts), c = colnames(envopts), d = colnames(envopts))
 allcombo <- expand.grid(combolist)
 allcombo <- allcombo[!allcombo$a == allcombo$b, ]
-allcombo < -allcombo[!allcombo$c == allcombo$d, ]
+allcombo <- allcombo[!allcombo$c == allcombo$d, ]
 indx <- !duplicated(t(apply(allcombo, 1, sort))) # finds non - duplicates in sorted rows
 allcombo <- allcombo[indx, ] # selects only the non - duplicates according to that index
 
